@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#08080D">
+<title>SALMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-state="COUNTDOWN_LOCKED">
+<noscript><p style="padding:2rem;text-align:center">يلزم تفعيل JavaScript لعرض هذه المفاجأة.</p></noscript>
+
+<!-- =====================================================================
+     1) COUNTDOWN DEADLINE  (edit here)
+     data-deadline : unambiguous timestamp with offset. Oct 10 2026, 00:00 Egypt (UTC+03:00).
+     data-timezone : IANA zone used for the analog clock (Egypt-local time).
+     data-message-epoch : fixed reference time for rotating the mysterious messages.
+     NOTE: front-end only experience - not a security system.
+     ===================================================================== -->
+<div id="config" hidden
+     data-deadline="2026-10-10T00:00:00+03:00"
+     data-timezone="Africa/Cairo"
+     data-message-epoch="2026-01-01T00:00:00+03:00"></div>
+
+<!-- Countdown messages (rotate every 3 minutes) -->
+<ul id="countdown-messages" hidden>
+  <li>كل ثانية بتقرّبك من سر صغير.</li>
+  <li>في لحظة جاية هتفضل فاكرها.</li>
+  <li>الوقت بيعدّي... والمفاجأة بتستناكي.</li>
+  <li>بعض اللحظات تستحق إننا نستناها.</li>
+  <li>مش كل الأبواب بتتفتح في أي وقت.</li>
+</ul>
+
+<!-- =====================================================================
+     2) + 3) MUSIC  (edit the src paths)
+     Put your own files in an "assets" folder, or use any valid audio URL.
+     The two example paths below are PLACEHOLDERS - the files do not exist
+     until you add them. If a file is missing the site still works silently.
+     ===================================================================== -->
+<!-- Waiting music: loops during the countdown / portal-ready screen -->
+<audio id="audio-wait" src="Duncan Laurence - Arcade - Violin Cover by Alan Milan(MP3_160K).mp3" preload="auto" autoplay loop></audio>
+<!-- Birthday music: starts when the portal button is clicked, plays to the end -->
+<audio id="audio-birthday" src="كل سنه وانت قلبي❤️_happybirthday _عيد_ميلاد _العسيلي  _تصميمي _love _احتفالات _حب(MP3_160K).mp3" preload="auto" loop></audio>
+
+<!-- =====================================================================
+     4) + 5) + 6) THE TEN PHOTOGRAPHS  (edit here)
+     Replace each image URL (src), alt text (alt) and Arabic caption (data-caption).
+     Leave data-caption="" for no caption. These example Unsplash URLs are
+     placeholders - verify they load, then swap in your own photographs.
+     Keep exactly ten entries, in the order you want them shown.
+     ===================================================================== -->
+<div id="memory-config" hidden>
+  <img data-memory="1"  loading="lazy" src="IMG-20261009-WA0007.jpg" alt="ذكرى 1" data-caption="ذكرى جميلة">
+  <img data-memory="2"  loading="lazy" src="IMG-20261009-WA0008.jpg" alt="ذكرى 2" data-caption="لحظة تستاهل نفتكرها">
+  <img data-memory="3"  loading="lazy" src="IMG-20261009-WA0009.jpg" alt="ذكرى 3" data-caption="يوم مميز">
+  <img data-memory="4"  loading="lazy" src="IMG-20261009-WA0010.jpg" alt="ذكرى 4" data-caption="شوية سعادة">
+  <img data-memory="5"  loading="lazy" src="IMG-20261009-WA0011.jpg" alt="ذكرى 5" data-caption="لحظات حلوة">
+  <img data-memory="6"  loading="lazy" src="IMG-20261009-WA0012.jpg" alt="ذكرى 6" data-caption="يوم مليان فرحة">
+  <img data-memory="7"  loading="lazy" src="IMG-20261009-WA0013.jpg" alt="ذكرى 7" data-caption="مع بعض في السعادة">
+  <img data-memory="8"  loading="lazy" src="IMG-20261009-WA0014.jpg" alt="ذكرى 8" data-caption="ذكرى نحتفظ بيها">
+  <img data-memory="9"  loading="lazy" src="IMG-20261009-WA0015.jpg" alt="ذكرى 9" data-caption="لحظة حلوة تانية">
+  <img data-memory="10" loading="lazy" src="Messenger_creation_D3B0A50F-9E04-4D62-933C-6C88C25BC8B2.jpeg" alt="ذكرى 10" data-caption="نهاية جميلة">
+</div>
+
+<!-- Background layers -->
+<div id="shade" aria-hidden="true"></div>
+<div id="tv-bg" aria-hidden="true"></div>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<!-- Music control -->
+<div id="audio-ctl" class="audio-ctl" role="group" aria-label="التحكم في الصوت">
+  <button id="mute" class="icon-btn" type="button" aria-label="كتم الصوت" aria-pressed="false">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M4 9v6h4l5 4V5L8 9z"/><path class="w" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path class="x" d="M4 4l16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+  <input id="vol" type="range" min="0" max="1" step="0.05" value="0.6" aria-label="مستوى الصوت">
+  <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
+</div>
+
+<!-- Sound activation fallback (shown only when the browser blocks audio) -->
+<div id="sound-prompt" class="sound-prompt" hidden>
+  <p>لتجربة سينمائية كاملة، فعّلي الصوت.</p>
+  <small>بعض المتصفحات تحتاج لمسة أولى لتشغيل الصوت.</small>
+  <button id="sound-btn" type="button">تفعيل الصوت</button>
+</div>
+
+<!-- ============================ STAGE ONE ============================ -->
+<main id="scene-countdown" class="scene">
+  <header class="brand">
+    <h1 dir="ltr" lang="en">THE COUNTDOWN</h1>
+    <p class="tag" dir="ltr" lang="en">A Secret Is Waiting for You</p>
+    <p class="sub">في مفاجأة مستنياكي... وكل ثانية بتقرّبك منها.</p>
+  </header>
+
+  <div class="clock" id="clock" role="img" aria-label="ساعة تعرض الوقت الحالي بتوقيت مصر">
+    <div class="bezel"><div class="ring2"><div class="ring3">
+      <div class="dial" id="dial">
+        <div class="dial-brand" dir="ltr">THE COUNTDOWN</div>
+        <div class="hand hour"></div>
+        <div class="hand min"></div>
+        <div class="hand sec"></div>
+        <i class="pivot"></i>
+      </div>
+    </div></div></div>
+    <div class="glass"></div>
+    <div class="sweep"></div>
+  </div>
+
+  <div class="units" id="units" role="timer" aria-label="الوقت المتبقي">
+    <div class="unit"><b id="u-d">00</b><span>يوم</span></div>
+    <div class="unit"><b id="u-h">00</b><span>ساعة</span></div>
+    <div class="unit"><b id="u-m">00</b><span>دقيقة</span></div>
+    <div class="unit"><b id="u-s">00</b><span>ثانية</span></div>
+  </div>
+  <p class="cd-msg" id="cd-msg" aria-live="polite"></p>
+</main>
+
+<!-- ============================ STAGE TWO ============================ -->
+<section id="scene-portal" class="scene">
+  <div class="portal" id="portal" aria-hidden="true">
+    <div class="p-halo"></div>
+    <i class="p-wave"></i><i class="p-wave"></i><i class="p-wave"></i>
+    <div class="p-ring spin r1"></div>
+    <div class="p-ring spin r2"></div>
+    <div class="p-ring spin r3"></div>
+    <div class="p-ring spin r4"></div>
+    <div class="p-lens"></div>
+    <div class="p-core"></div>
+  </div>
+  <p class="portal-text" id="portal-text">الوقت جه... مستعدة تكتشفي المفاجأة؟</p>
+  <button id="open-portal" class="cta" type="button" dir="ltr" lang="en">OPEN THE PORTAL</button>
+</section>
+
+<!-- Time-travel overlay (stages C-F). Birthday content stays hidden underneath. -->
+<div id="scene-travel" aria-hidden="true">
+  <div class="tunnel">
+    <i class="tr" style="--i:0"></i><i class="tr" style="--i:1"></i><i class="tr" style="--i:2"></i><i class="tr" style="--i:3"></i>
+    <i class="tr" style="--i:4"></i><i class="tr" style="--i:5"></i><i class="tr" style="--i:6"></i><i class="tr" style="--i:7"></i>
+  </div>
+  <div class="time-layer">
+    <i class="tf f1"></i><i class="tf f2"></i><i class="tf f3"></i>
+    <i class="band b1"></i><i class="band b2"></i><i class="band b3"></i>
+  </div>
+  <div class="burst"></div>
+</div>
+
+<!-- ============================ STAGE THREE ============================ -->
+<!-- 7) BIRTHDAY GREETING TEXT (edit here) -->
+<section id="scene-birthday" class="scene">
+  <div class="bd-wrap">
+    <h2 id="bd-title" class="bd-line" style="--d:.5s">كل سنة وإنتِ طيبة يا أحلى أخت في الدنيا ❤️</h2>
+    <p class="bd-line" style="--d:3s">يارب سنتك الجديدة تكون مليانة فرحة ونجاح وراحة بال، وتحققي فيها كل اللي نفسك فيه.</p>
+    <p class="bd-line" style="--d:6.4s">مل سنة وانت طيبة يا ام فهد</p>
+    <p class="bd-line bd-final" style="--d:9.8s">عيد ميلاد سعيد يا أجمل أخت.</p>
+  </div>
+</section>
+
+<section id="scene-photos" class="scene">
+  <p id="ph-intro" class="ph-intro">في ذكريات مهما عدّى عليها الوقت، بتفضل منوّرة جوانا...</p>
+  <div id="stage" class="stage"></div>
+  <div class="ph-bottom">
+    <p id="ph-label" class="ph-label" aria-live="polite"></p>
+    <div id="progress" class="progress" aria-hidden="true"></div>
+    <div class="ctrls" dir="ltr">
+      <button id="btn-pause" class="icon-btn" type="button" aria-label="إيقاف مؤقت">
+        <svg class="i-pause" viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>
+        <svg class="i-play" viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button id="btn-next" class="icon-btn" type="button" aria-label="الصورة التالية">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M6 5v14l9-7zM17 5h2v14h-2z"/></svg>
+      </button>
+      <button id="btn-replay" class="icon-btn" type="button" aria-label="إعادة العرض من البداية">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 5V2L7 6.5 12 11V8a5 5 0 1 1-5 5H5a7 7 0 1 0 7-8z"/></svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section id="scene-gallery" class="scene">
+  <h2 id="g-title" class="g-title"></h2>
+  <div id="grid" class="grid"></div>
+  <button id="g-replay" class="cta small" type="button">إعادة العرض السينمائي</button>
+</section>
+
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="عرض الصورة">
+  <button id="lb-close" class="icon-btn" type="button" aria-label="إغلاق">
+    <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+  </button>
+  <img id="lb-img" alt="">
+  <p id="lb-cap" class="cap"></p>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
